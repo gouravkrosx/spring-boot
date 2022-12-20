@@ -2,6 +2,10 @@ package com.mkyong;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.keploy.regression.Mode;
+import io.keploy.utils.AssertKTests;
+import io.keploy.utils.HaltThread;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
@@ -46,6 +51,20 @@ public class BookControllerTest {
     public void init() {
         Book book = new Book(1L, "Book Name", "Mkyong", new BigDecimal("9.99"));
         when(mockRepository.findById(1L)).thenReturn(Optional.of(book));
+    }
+
+    @Test
+    public void testKeploy() throws InterruptedException {
+        CountDownLatch countDownLatch = HaltThread.getInstance().getCountDownLatch();
+        Mode.setTestMode();
+
+        new Thread(() -> {
+            StartBookApplication.main(new String[]{""});
+            countDownLatch.countDown();
+        }).start();
+
+        countDownLatch.await();
+        Assert.assertTrue(AssertKTests.result());
     }
 
     @Test
@@ -101,8 +120,8 @@ public class BookControllerTest {
         when(mockRepository.save(any(Book.class))).thenReturn(newBook);
 
         mockMvc.perform(post("/books")
-                .content(om.writeValueAsString(newBook))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON))
+                        .content(om.writeValueAsString(newBook))
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON))
                 /*.andDo(print())*/
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", is(1)))
@@ -121,8 +140,8 @@ public class BookControllerTest {
         when(mockRepository.save(any(Book.class))).thenReturn(updateBook);
 
         mockMvc.perform(put("/books/1")
-                .content(om.writeValueAsString(updateBook))
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON))
+                        .content(om.writeValueAsString(updateBook))
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(1)))
@@ -140,8 +159,8 @@ public class BookControllerTest {
         String patchInJson = "{\"author\":\"ultraman\"}";
 
         mockMvc.perform(patch("/books/1")
-                .content(patchInJson)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON))
+                        .content(patchInJson)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8))
                 .andExpect(status().isOk());
 
@@ -156,8 +175,8 @@ public class BookControllerTest {
         String patchInJson = "{\"price\":\"99.99\"}";
 
         mockMvc.perform(patch("/books/1")
-                .content(patchInJson)
-                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON))
+                        .content(patchInJson)
+                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON))
                 .andExpect(status().isMethodNotAllowed());
 
         verify(mockRepository, times(1)).findById(1L);
