@@ -1,14 +1,17 @@
 package com.mkyong;
 
+import io.keploy.servlet.KeployMiddleware;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Profile;
 
 import java.math.BigDecimal;
 
 @SpringBootApplication
+@Import(KeployMiddleware.class)
 public class StartBookApplication {
 
     // start everything
